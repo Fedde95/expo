@@ -96,6 +96,8 @@ export interface PageHeaderInfo<TRegex = RegExp | string> {
 }
 
 export interface RoutesManifest<TRegex = RegExp | string> {
+  /** BitSet route JS lists replace, rather than append to, the top-level bootstrap list. */
+  chunkingStrategy?: 'bitset' | 'legacy';
   /**
    * Middleware function that runs before any route matching.
    * Only allowed at the root level and requires web.output: "server".

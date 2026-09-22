@@ -108,7 +108,11 @@ export function createEnvironment(input: EnvironmentInput): CommonEnvironment {
     ssrRenderer = async (request, options) => {
       const url = new URL(request.url);
       const location = new URL(url.pathname + url.search, url.origin);
-      const assets = mergeAssets(topLevelAssets, options?.assets);
+      const assets = mergeAssets(
+        topLevelAssets,
+        options?.assets,
+        manifest.chunkingStrategy === 'bitset'
+      );
 
       // NOTE(@hassankhan): We still need to support SDK 55 deployments which
       // use the "legacy" server export
@@ -250,13 +254,19 @@ export function createEnvironment(input: EnvironmentInput): CommonEnvironment {
 }
 
 /**
- * Merges top-level assets with per-route async chunk assets. Top-level assets come first
+ * Legacy lists append route scripts; marked lists already contain the complete hydration order.
  */
-function mergeAssets(topLevel?: AssetInfo, routeLevel?: AssetInfo): AssetInfo {
+function mergeAssets(
+  topLevel?: AssetInfo,
+  routeLevel?: AssetInfo,
+  completeRouteScripts = false
+): AssetInfo {
   return {
     css: [...(topLevel?.css ?? []), ...(routeLevel?.css ?? [])],
     externalCss: [...(topLevel?.externalCss ?? []), ...(routeLevel?.externalCss ?? [])],
-    js: [...(topLevel?.js ?? []), ...(routeLevel?.js ?? [])],
+    js: completeRouteScripts
+      ? [...(routeLevel?.js ?? topLevel?.js ?? [])]
+      : [...(topLevel?.js ?? []), ...(routeLevel?.js ?? [])],
     favicon: topLevel?.favicon,
   };
 }

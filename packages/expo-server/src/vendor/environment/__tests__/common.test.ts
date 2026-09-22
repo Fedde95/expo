@@ -411,6 +411,42 @@ describe('getHtml', () => {
     );
   });
 
+  it.each([true, false])(
+    'uses complete BitSet route scripts after manifest parsing (route list: %s)',
+    async (hasRouteAssets) => {
+      const mockSSRModule = createMockSSRModule();
+      const raw = createMockManifest({
+        chunkingStrategy: 'bitset',
+        rendering: { mode: 'ssr', file: '_expo/server/render.js' },
+        assets: { css: ['/global.css'], js: ['/runtime.js', '/entry.js'] },
+        htmlRoutes: [{
+          file: './index.tsx', page: '/index', namedRegex: '^/(?:/)?$',
+          assets: hasRouteAssets ? {
+            css: ['/route.css'],
+            js: ['/runtime.js', '/shared.js', '/layout.js', '/page.js', '/entry.js'],
+          } : undefined,
+        }],
+      });
+      const input = createMockInput({ modules: { '_expo/server/render.js': mockSSRModule } });
+      input.readJson.mockResolvedValue(JSON.parse(JSON.stringify(raw)));
+      const env = createEnvironment(input);
+      const manifest = await env.getRoutesManifest();
+      expect(manifest!.chunkingStrategy).toBe('bitset');
+      await env.getHtml(new Request('http://localhost/'), manifest!.htmlRoutes[0]!);
+      expect(mockSSRModule.getStreamingContent).toHaveBeenCalledWith(
+        expect.any(URL),
+        expect.objectContaining({
+          assets: expect.objectContaining({
+            css: hasRouteAssets ? ['/global.css', '/route.css'] : ['/global.css'],
+            js: hasRouteAssets
+              ? ['/runtime.js', '/shared.js', '/layout.js', '/page.js', '/entry.js']
+              : ['/runtime.js', '/entry.js'],
+          }),
+        })
+      );
+    }
+  );
+
   it('merges top-level and per-route external CSS', async () => {
     const mockSSRModule = createMockSSRModule();
     const input = createMockInput({
@@ -877,6 +913,7 @@ function createMockManifest({
   rewrites?: PartialRoute[];
   middleware?: MiddlewareInfo;
   rendering?: RenderingConfiguration;
+  chunkingStrategy?: 'bitset' | 'legacy';
   assets?: AssetInfo;
 } = {}): RawManifest {
   return {
