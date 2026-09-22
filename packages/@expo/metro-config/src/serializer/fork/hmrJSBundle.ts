@@ -88,6 +88,7 @@ function generateModules(
 function prepareModule(module: Module<any>, graph: ReadOnlyGraph<any>, options: Options): string {
   const code = wrapModule(module, {
     ...options,
+    chunkingStrategy: 'legacy',
     sourceUrl: options.clientUrl.toString(),
     dev: true,
     skipWrapping: false,

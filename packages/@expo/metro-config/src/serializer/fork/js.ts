@@ -12,6 +12,7 @@
 import { addParamsToDefineCall } from '@expo/metro/metro-transform-plugins';
 import type { JsOutput } from '@expo/metro/metro-transform-worker';
 import type { MixedOutput, Module } from '@expo/metro/metro/DeltaBundler';
+import type { SerializerOptions } from '@expo/metro/metro/DeltaBundler/types';
 import { isResolvedDependency } from '@expo/metro/metro/lib/isResolvedDependency';
 import assert from 'assert';
 import jscSafeUrl from 'jsc-safe-url';
@@ -19,8 +20,11 @@ import path from 'path';
 
 import type { AsyncDependencyType } from '../../transform-worker/collect-dependencies';
 import { toPosixPath as normalizePathSeparatorsToPosix } from '../../utils/filePath';
+import type { AsyncModulePaths, ChunkingStrategy } from '../serializerAssets';
 
-export type Options = {
+export type Options = Pick<SerializerOptions, 'unstable_getAsyncDependencyPath'> & {
+  /** Internal, selected emission strategy; not the unvalidated Router request. */
+  chunkingStrategy?: ChunkingStrategy;
   createModuleId: (module: string) => number | string;
   dev: boolean;
   includeAsyncPaths: boolean;
@@ -35,7 +39,7 @@ export type Options = {
 export function wrapModule(
   module: Module,
   options: Options
-): { src: string; paths: Record<string, string> } {
+): { src: string; paths: AsyncModulePaths } {
   const output = getJsOutput(module);
 
   if (output.type.startsWith('js/script')) {
@@ -59,11 +63,13 @@ export function getModuleParams(
     | 'dev'
     | 'projectRoot'
     | 'computedAsyncModulePaths'
+    | 'chunkingStrategy'
+    | 'unstable_getAsyncDependencyPath'
   >
-): { params: any[]; paths: Record<string, string> } {
+): { params: any[]; paths: AsyncModulePaths } {
   const moduleId = options.createModuleId(module.path);
 
-  const paths: { [moduleID: number | string]: any } = {};
+  const paths: AsyncModulePaths = {};
   let hasPaths = false;
 
   const dependencyMapArray = Array.from(module.dependencies.values()).map((dependency) => {
@@ -94,7 +100,22 @@ export function getModuleParams(
 
       dependency.data.data.asyncType != null
     ) {
-      if (options.includeAsyncPaths) {
+      if (options.chunkingStrategy === 'bitset') {
+        // A production export also has sourceUrl. Dispatch before the legacy dev-URL
+        // branch and never fall through on a disabled stable pass or a null result.
+        if (options.includeAsyncPaths) {
+          const value = options.unstable_getAsyncDependencyPath?.(dependency, options);
+          if (value != null) {
+            assert(
+              typeof value === 'string' ||
+                (Array.isArray(value) && value.every((path) => typeof path === 'string')),
+              `Async path for ${dependency.absolutePath} must be a string or an array of strings.`
+            );
+            paths[id] = value;
+            hasPaths = true;
+          }
+        }
+      } else if (options.includeAsyncPaths) {
         if (options.sourceUrl) {
           hasPaths = true;
           // TODO: Only include path if the target is not in the bundle
@@ -128,7 +149,7 @@ export function getModuleParams(
       } else if (options.splitChunks && options.computedAsyncModulePaths != null) {
         hasPaths = true;
         // A template string that we'll match and replace later when we know the content hash for a given path.
-        paths[id] = options.computedAsyncModulePaths[dependency.absolutePath];
+        paths[id] = options.computedAsyncModulePaths[dependency.absolutePath]!;
       }
     }
     return id;
