@@ -56,6 +56,7 @@ export interface BitSetGraphAnalysis {
   readonly dependentEntriesByModule: ReadonlyMap<GraphModule, BitSet>;
   readonly importerEntriesByDynamicEntry: readonly BitSet[];
   readonly dynamicImportsByEntry: readonly BitSet[];
+  readonly workerEntries: readonly GraphModule[];
 }
 
 /** An ownership group, not yet an emitted file or semantic entry facade. */
@@ -219,6 +220,7 @@ export function analyzeBitSetGraph(
   // Cache resolved page edges once. Weak references do not cause code to load;
   // workers have their own realm and are collected by the existing worker path.
   const edges = new Map<GraphModule, { target: GraphModule; dynamic: boolean }[]>();
+  const workerEntries = new Set<GraphModule>();
   const queue = [...entriesByPath.values()].map((entry) => entry.module);
   for (let index = 0; index < queue.length; index++) {
     const module = queue[index]!;
@@ -236,6 +238,7 @@ export function analyzeBitSetGraph(
         );
       }
       if (asyncType === 'worker') {
+        workerEntries.add(target);
         continue;
       }
       const dynamic = asyncType != null;
@@ -293,5 +296,6 @@ export function analyzeBitSetGraph(
     ),
     importerEntriesByDynamicEntry,
     dynamicImportsByEntry,
+    workerEntries: [...workerEntries].sort(compareModules),
   };
 }
