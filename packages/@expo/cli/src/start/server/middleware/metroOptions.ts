@@ -35,6 +35,8 @@ export type ExpoMetroOptions = {
   asyncRoutes?: boolean;
   /** The chunking strategy to use when `splitChunks` is enabled. */
   chunkingStrategy?: 'bitset' | 'legacy';
+  /** Whole-export RSC context, including client bundles with no boundaries. */
+  isRscExport?: boolean;
   /** Module ID relative to the projectRoot for the Expo Router app directory. */
   routerRoot?: string;
   /** Enable React compiler support in Babel. */
@@ -72,6 +74,7 @@ export type SerializerOptions = {
   output?: 'static';
   splitChunks?: boolean;
   chunkingStrategy?: 'bitset' | 'legacy';
+  isRscExport?: boolean;
   usedExports?: boolean;
   exporting?: boolean;
 };
@@ -153,8 +156,16 @@ export function getMetroDirectBundleOptionsForExpoConfig(
     baseUrl: getBaseUrlFromExpoConfig(exp),
     routerRoot: getRouterDirectoryModuleIdWithManifest(projectRoot, exp),
     asyncRoutes: getAsyncRoutesFromExpoConfig(exp, options.mode, options.platform),
-    chunkingStrategy: exp.extra?.router?.unstable_chunking === true ? 'bitset' : 'legacy',
+    ...getChunkingOptionsFromExpoConfig(exp),
   });
+}
+
+export function getChunkingOptionsFromExpoConfig(exp: ExpoConfig) {
+  return {
+    chunkingStrategy: exp.extra?.router?.unstable_chunking === true ? 'bitset' : 'legacy',
+    isRscExport:
+      !!exp.experiments?.reactServerComponentRoutes || !!exp.experiments?.reactServerFunctions,
+  } satisfies Pick<ExpoMetroOptions, 'chunkingStrategy' | 'isRscExport'>;
 }
 
 export function getMetroDirectBundleOptions(options: ExpoMetroOptions) {
@@ -177,6 +188,7 @@ export function getMetroDirectBundleOptions(options: ExpoMetroOptions) {
     inlineSourceMap,
     splitChunks,
     chunkingStrategy,
+    isRscExport,
     usedExports,
     reactCompiler,
     optimize,
@@ -261,6 +273,7 @@ export function getMetroDirectBundleOptions(options: ExpoMetroOptions) {
     serializerOptions: {
       splitChunks,
       chunkingStrategy,
+      isRscExport,
       usedExports: usedExports || undefined,
       output: serializerOutput,
       includeSourceMaps: serializerIncludeMaps,

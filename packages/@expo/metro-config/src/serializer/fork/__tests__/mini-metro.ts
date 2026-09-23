@@ -107,6 +107,7 @@ export async function microBundle({
     minify?: boolean;
     splitChunks?: boolean;
     chunkingStrategy?: ChunkingStrategy;
+    isRscExport?: boolean;
     treeshake?: boolean;
     optimize?: boolean;
     inlineRequires?: boolean;
@@ -275,6 +276,7 @@ export async function microBundle({
               includeSourceMaps: options.sourceMaps,
               splitChunks: options.splitChunks,
               chunkingStrategy: options.chunkingStrategy,
+              isRscExport: options.isRscExport,
               // NOTE(cedric): exporting mode should always be provided explicitly, but we can't easily do that in the tests
               exporting: !dev,
             }

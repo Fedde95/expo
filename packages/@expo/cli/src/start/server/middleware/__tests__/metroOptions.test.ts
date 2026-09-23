@@ -1,6 +1,57 @@
 import { env } from 'node:process';
 
-import { createBundleUrlPath, getMetroDirectBundleOptions } from '../metroOptions';
+import {
+  createBundleUrlPath,
+  getChunkingOptionsFromExpoConfig,
+  getMetroDirectBundleOptions,
+  getMetroDirectBundleOptionsForExpoConfig,
+} from '../metroOptions';
+
+describe('chunking options', () => {
+  it.each([
+    { unstable_chunking: true, expectedStrategy: 'bitset' },
+    { unstable_chunking: false, expectedStrategy: 'legacy' },
+    { unstable_chunking: undefined, expectedStrategy: 'legacy' },
+  ])(
+    'selects $expectedStrategy for Router opt-in $unstable_chunking',
+    ({ unstable_chunking, expectedStrategy }) => {
+      const result = getMetroDirectBundleOptionsForExpoConfig(
+        '/app',
+        {
+          name: 'test',
+          slug: 'test',
+          extra: { router: { unstable_chunking } },
+        },
+        {
+          mainModuleName: '/app/index.js',
+          mode: 'production',
+          platform: 'web',
+          isExporting: true,
+          splitChunks: true,
+        }
+      );
+      expect(result.serializerOptions).toMatchObject({
+        chunkingStrategy: expectedStrategy,
+        splitChunks: true,
+        isRscExport: false,
+      });
+    }
+  );
+
+  it.each([
+    { experiments: {}, expectedIsRscExport: false },
+    { experiments: { reactServerComponentRoutes: true }, expectedIsRscExport: true },
+    { experiments: { reactServerFunctions: true }, expectedIsRscExport: true },
+    {
+      experiments: { reactServerComponentRoutes: true, reactServerFunctions: true },
+      expectedIsRscExport: true,
+    },
+  ])('identifies RSC exports from $experiments', ({ experiments, expectedIsRscExport }) => {
+    expect(
+      getChunkingOptionsFromExpoConfig({ name: 'test', slug: 'test', experiments }).isRscExport
+    ).toBe(expectedIsRscExport);
+  });
+});
 
 describe(getMetroDirectBundleOptions, () => {
   it(`asserts unsupported options: using bytecode on web`, () => {

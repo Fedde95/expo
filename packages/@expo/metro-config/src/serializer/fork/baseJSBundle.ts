@@ -46,6 +46,7 @@ export type ExpoSerializerOptions = SerializerOptions & {
     usedExports?: boolean;
     splitChunks?: boolean;
     chunkingStrategy?: ChunkingStrategy;
+    isRscExport?: boolean;
     output?: string;
     includeSourceMaps?: boolean;
     exporting?: boolean;

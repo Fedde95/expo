@@ -362,6 +362,7 @@ function getDefaultSerializer(
       customSerializerOptions?.chunkingStrategy === 'bitset' &&
       customSerializerOptions.exporting &&
       serializerOptions.splitChunks &&
+      !customSerializerOptions.isRscExport &&
       context.platform === 'web' &&
       context.environment === 'client' &&
       customTransformOptions?.dom == null &&
