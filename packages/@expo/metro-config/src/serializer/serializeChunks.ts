@@ -419,6 +419,7 @@ export class Chunk {
       skipWrapping: true,
       computedAsyncModulePaths: null,
       ...(this.options.chunkingStrategy === 'bitset' && {
+        chunkCompletion: this.isAsync && !this.sealed,
         includeAsyncPaths: false,
         unstable_getAsyncDependencyPath: undefined,
       }),
