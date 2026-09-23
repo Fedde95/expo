@@ -29,7 +29,7 @@
 - [iOS] The SwiftPM autolinking plugin now honours a product's `autolinkWhen` condition, so a gated product of a module shipping a checked-in `Package.swift` is linked only when the app's configuration enables it, as `pod install` already does. ([#50549](https://github.com/expo/expo/pull/50549) by [@chrfalch](https://github.com/chrfalch))
 - [iOS] The SwiftPM autolinking plugin now fails the sync when a pod gated by an `autolinkWhen` condition would be linked without that condition being checked — as a precompiled framework, or built from source without a checked-in `Package.swift` — instead of linking it regardless of the app's configuration. ([#50549](https://github.com/expo/expo/pull/50549) by [@chrfalch](https://github.com/chrfalch))
 - [iOS] The SwiftPM autolinking plugin now fails the sync when `Podfile.properties.json` cannot be read as a JSON object, instead of continuing with no properties. Every gated product then fell to its own default instead of the app's configuration, which silently disagreed with what CocoaPods would install. ([#50549](https://github.com/expo/expo/pull/50549) by [@chrfalch](https://github.com/chrfalch))
-- [iOS] Fail the SwiftPM autolinking sync with a specific error for a module that has prebuilt XCFrameworks for only some of its pods, instead of building it from source and linking the prebuilt pods twice.
+- [iOS] Fail the SwiftPM autolinking sync with a specific error for a module that has prebuilt XCFrameworks for only some of its pods, instead of building it from source and linking the prebuilt pods twice. ([#50549](https://github.com/expo/expo/pull/50549) by [@chrfalch](https://github.com/chrfalch))
 
 ### 💡 Others
 
